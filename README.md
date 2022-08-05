@@ -1,3 +1,3 @@
-# MICROSERVICE COVID 19 PATIENTS CLASSIFICATION
+# DASHBOARD MICROSERVICE
 
-Microservice for the covid 19 patient classification application
+Dashboard microservice for the covid 19 patient classification application
