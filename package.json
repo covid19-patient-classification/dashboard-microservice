@@ -1,0 +1,31 @@
+{
+  "name": "dashboard-microservice",
+  "version": "1.0.0",
+  "description": "Dashboard microservice for the covid 19 patient classification application",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "lint": "eslint",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/covid19-patient-classification/dashboard-microservice.git"
+  },
+  "keywords": [],
+  "author": "Carlos Castillo <carloscastillo10> (https://github.como/carloscastillo10)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/covid19-patient-classification/dashboard-microservice/issues",
+    "email": "carloscastillo090916@gmail.com"
+  },
+  "homepage": "https://github.com/covid19-patient-classification/dashboard-microservice#readme",
+  "devDependencies": {
+    "eslint": "^8.24.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "nodemon": "^2.0.20",
+    "prettier": "^2.7.1"
+  }
+}
