@@ -1,13 +1,19 @@
-class PatientOutputPort {
-  constructor() {
-    if (this.constructor === PatientOutputPort) {
-      throw new Error('Class "PatientOutputPort" cannot be instantiated');
-    }
-  }
+/* eslint-disable no-unused-vars */
 
-  getAllData() {
-    throw new Error('Method "getAllData()" must be implemented');
-  }
+class PatientOutputPort {
+    constructor() {
+        if (this.constructor === PatientOutputPort) {
+            throw new Error('Class "PatientOutputPort" cannot be instantiated');
+        }
+    }
+
+    list() {
+        throw new Error('Method "list()" must be implemented');
+    }
+
+    getByDate(date) {
+        throw new Error('Method "getByDate()" must be implemented');
+    }
 }
 
 module.exports = PatientOutputPort;
