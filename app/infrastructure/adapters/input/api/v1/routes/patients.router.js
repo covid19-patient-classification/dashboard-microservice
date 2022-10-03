@@ -1,15 +1,15 @@
 const express = require('express');
 const PatientMongoDBAdapter = require('../../../../output/mongodb/patient.adapter');
 const router = express.Router();
-const service = new PatientMongoDBAdapter();
+const patientMongoDBAdapter = new PatientMongoDBAdapter();
 
-router.get('/', (req, res, next) => {
-  try {
-    res.json(service.getAllData());
-  } catch (error) {
-    next(error);
-  }
+router.get('/', async (req, res, next) => {
+    try {
+        const patients = await patientMongoDBAdapter.list();
+        res.send(patients);
+    } catch (error) {
+        next(error);
+    }
 });
-
 
 module.exports = router;
