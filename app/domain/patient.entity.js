@@ -35,8 +35,8 @@ const patientEntity = {
     nausea: Boolean,
     vomit: Boolean,
     diarrhea: Boolean,
-    covid19_severity: Boolean,
-    registration_date: Date,
+    covid19_severity: String,
+    created_at: Date,
 };
 
 module.exports = patientEntity;
