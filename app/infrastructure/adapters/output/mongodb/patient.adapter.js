@@ -12,19 +12,28 @@ class PatientMongoDBAdapter extends PatientOutputPort {
     }
 
     async list() {
-        // const patients = []
         const currentDate = this.getCurrentDate();
         const weeklyVariation = 7
         const previousDate = this.getPreviousPeriod(currentDate, weeklyVariation);
-        const filter = {
+        const currentWeekfilter = {
             created_at: {
                 $gte: previousDate,
                 $lt: currentDate
             }
         }
 
-        const patients = await this.query(filter)
-        return await this.getWeeklyRanking(previousDate, currentDate, patients);
+        const weeklyData = await this.query(currentWeekfilter);
+
+        // Data from 15 days ago
+        const fifteenDate = this.getPreviousPeriod(previousDate, weeklyVariation);
+        const fitteenWeekfilter = {
+            created_at: {
+                $gte: fifteenDate,
+                $lt: previousDate
+            }
+        }
+        const fifteenData = await this.query(fitteenWeekfilter);
+        return await this.getInitialData(previousDate, currentDate, weeklyData, fifteenData);
     }
 
     async query(filter){
