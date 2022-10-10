@@ -103,7 +103,7 @@ class PatientOutputPort {
         );
     }
 
-    async getInitialData(startDate, endDate, weeKlyData, fifteenData) {
+    async getInitialData(startDate, endDate, weeKlyData, fifteenData, summaryData) {
         const weeKlyFormat = 'DD MMM';
         const weeklyDates = this.getWeeklyDates(weeKlyData, weeKlyFormat);
         const countWeeklyPatients = this.listPatientSeverityByDate(
@@ -120,7 +120,7 @@ class PatientOutputPort {
             weeKlyFormat
         );
 
-        return await {
+        return {
             weekly_ranking: {
                 start_date: startDate,
                 end_date: endDate,
@@ -158,6 +158,7 @@ class PatientOutputPort {
                     },
                 },
             },
+            summary: { patients: summaryData },
         };
     }
 }
