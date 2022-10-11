@@ -4,7 +4,7 @@ const config = require('../../infrastructure/resources/config');
 const dateFormat = require('date-and-time');
 const es = require('date-and-time/locale/es');
 const lodash = require('lodash');
-const formatParsed = 'D/M/YYYY HH:mm:ss';
+const formatParsed = 'D/M/YYYY, H:mm:ss';
 
 dateFormat.locale(es);
 class PatientOutputPort {
@@ -26,11 +26,6 @@ class PatientOutputPort {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
-    dateToString(date, format) {
-        date = this.setLocalTimeZone(date, format);
-        return this.capitalize(date.replace('.', ''));
-    }
-
     setDateFormat(date, format) {
         const dateParsed = dateFormat.parse(date, formatParsed);
         return dateFormat.format(dateParsed, format);
@@ -41,6 +36,11 @@ class PatientOutputPort {
             timeZone: config.timeZone,
         });
         return this.setDateFormat(localeDate, format);
+    }
+
+    dateToString(date, format) {
+        date = this.setLocalTimeZone(date, format);
+        return this.capitalize(date.replace('.', ''));
     }
 
     getCurrentDate() {
@@ -130,6 +130,7 @@ class PatientOutputPort {
             data.weeklyData,
             weeKlyFormat
         );
+        console.log(weeklyDates);
         const countWeeklyPatients = this.listPatientSeverityByDate(
             data.weeklyData,
             weeklyDates,
