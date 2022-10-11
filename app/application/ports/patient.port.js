@@ -37,7 +37,7 @@ class PatientOutputPort {
     }
 
     setLocalTimeZone(date, format) {
-        const localeDate = date.toLocaleString(config.dateZone, {
+        const localeDate = date.toLocaleString(config.dateLocale, {
             timeZone: config.timeZone,
         });
         return this.setDateFormat(localeDate, format);
