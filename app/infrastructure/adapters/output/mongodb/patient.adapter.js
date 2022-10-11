@@ -26,7 +26,8 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                     $lt: currentDate,
                 },
             },
-            { created_at: 1 }
+            { created_at: 1 },
+            'created_at covid19_severity'
         );
 
         // Data from 15 days ago
@@ -34,24 +35,47 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             previousDate,
             weeklyVariation
         );
-        const fifteenData = await this.query({
-            created_at: {
-                $gte: fifteenDate,
-                $lt: previousDate,
+        const fifteenData = await this.query(
+            {
+                created_at: {
+                    $gte: fifteenDate,
+                    $lt: previousDate,
+                },
             },
-        });
+            { created_at: 1 },
+            'created_at covid19_severity'
+        );
 
         // Data all year
-        const firstDateOfYear = this.getFirstDateOfYear();
         const annualData = await this.query(
             {
                 created_at: {
-                    $gte: firstDateOfYear,
+                    $gte: this.getFirstDateOfYear(),
                     $lt: currentDate,
                 },
             },
-            { created_at: 1 }
+            { created_at: 1 },
+            'created_at covid19_severity'
         );
+
+        // Data from previous year
+        const totalPatientsOfPreviousYear = await this.count({
+            created_at: {
+                $gte: this.getFirstDateOfPreviousYear(),
+                $lt: this.getLastDateOfPreviousYear(),
+            },
+        });
+
+        // Total ranking
+        const totalModeratePatients = await this.count({
+            covid19_severity: 'Moderado',
+        });
+        const totalSeriusPatients = await this.count({
+            covid19_severity: 'Grave',
+        });
+        const totalCriticalPatients = await this.count({
+            covid19_severity: 'Crítico',
+        });
 
         // Summary data
         const summaryData = await this.query({}, { created_at: -1 });
@@ -63,14 +87,22 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             fifteenData,
             summaryData,
             annualData,
+            totalPatientsOfPreviousYear,
+            totalModeratePatients,
+            totalSeriusPatients,
+            totalCriticalPatients
         };
 
         return await this.setInitialData(data);
     }
 
-    async query(filter, sorter) {
+    async query(filter, sorter, selecter) {
         // const result = await patientModel.find(filter)
-        return await patientModel.find(filter).sort(sorter);
+        return await patientModel.find(filter).sort(sorter).select(selecter);
+    }
+
+    async count(filter) {
+        return await patientModel.find(filter).count();
     }
 
     async setupMongoDatabase() {

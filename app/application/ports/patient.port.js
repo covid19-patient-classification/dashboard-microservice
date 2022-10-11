@@ -51,6 +51,14 @@ class PatientOutputPort {
         return new Date(`01/01/${new Date().getFullYear()}`);
     }
 
+    getFirstDateOfPreviousYear() {
+        return new Date(`01/01/${new Date().getFullYear() - 1}`);
+    }
+
+    getLastDateOfPreviousYear() {
+        return new Date(`12/31/${new Date().getFullYear() - 1}`);
+    }
+
     getPreviousPeriod(currentDate, variation) {
         return new Date(
             currentDate.getFullYear(),
@@ -71,9 +79,9 @@ class PatientOutputPort {
 
     listPatientSeverityByDate(data, dates, format) {
         const countPatients = {
-            moderate: {data: [], total: 0},
-            serius:{data: [], total: 0},
-            critical: {data: [], total: 0},
+            moderate: { data: [], total: 0 },
+            serius: { data: [], total: 0 },
+            critical: { data: [], total: 0 },
         };
 
         dates.map((date) => {
@@ -98,9 +106,9 @@ class PatientOutputPort {
             countPatients.serius.data.push(numberOfSeriusPatients);
             countPatients.critical.data.push(numberOfCriticalPatients);
         });
-        countPatients.moderate.total = lodash.sum(countPatients.moderate.data)
-        countPatients.serius.total = lodash.sum(countPatients.serius.data)
-        countPatients.critical.total = lodash.sum(countPatients.critical.data)
+        countPatients.moderate.total = lodash.sum(countPatients.moderate.data);
+        countPatients.serius.total = lodash.sum(countPatients.serius.data);
+        countPatients.critical.total = lodash.sum(countPatients.critical.data);
 
         return countPatients;
     }
@@ -110,7 +118,10 @@ class PatientOutputPort {
             return totalCurrentPeriod * 100;
         }
 
-        return ((totalCurrentPeriod - totalPreviousPeriod) / totalPreviousPeriod) * 100;
+        return (
+            ((totalCurrentPeriod - totalPreviousPeriod) / totalPreviousPeriod) *
+            100
+        );
     }
 
     async setInitialData(data) {
@@ -147,6 +158,10 @@ class PatientOutputPort {
             annualDates,
             annualFormat
         );
+        const totalAnnualPtients =
+            countAnnualPatients.moderate.total +
+            countAnnualPatients.serius.total +
+            countAnnualPatients.critical.total;
 
         return {
             weekly_ranking: {
@@ -202,10 +217,27 @@ class PatientOutputPort {
                         data: countAnnualPatients.critical.data,
                     },
                 },
-                total:
-                    countAnnualPatients.moderate.total +
-                    countAnnualPatients.serius.total +
-                    countAnnualPatients.critical.total,
+                total: totalAnnualPtients,
+                total_percentage: this.getPercentageDifference(
+                    totalAnnualPtients,
+                    data.totalPatientsOfPreviousYear
+                ),
+            },
+            total_ranking: {
+                data: {
+                    moderate_patients: {
+                        label: 'Pacientes Moderados',
+                        total: data.totalModeratePatients,
+                    },
+                    serius_patients: {
+                        label: 'Pacientes Graves',
+                        total: data.totalSeriusPatients,
+                    },
+                    critical_patients: {
+                        label: 'Pacientes Críticos',
+                        total: data.totalCriticalPatients,
+                    },
+                },
             },
             summary: { patients: data.summaryData },
         };
