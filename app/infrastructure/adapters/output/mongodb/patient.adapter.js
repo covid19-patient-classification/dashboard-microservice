@@ -19,12 +19,15 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             weeklyVariation
         );
 
-        const weeklyData = await this.query({
-            created_at: {
-                $gte: previousDate,
-                $lt: currentDate,
+        const weeklyData = await this.query(
+            {
+                created_at: {
+                    $gte: previousDate,
+                    $lt: currentDate,
+                },
             },
-        });
+            { created_at: 1 }
+        );
 
         // Data from 15 days ago
         const fifteenDate = this.getPreviousPeriod(
@@ -38,16 +41,31 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             },
         });
 
+        // Data all year
+        const firstDateOfYear = this.getFirstDateOfYear();
+        const annualData = await this.query(
+            {
+                created_at: {
+                    $gte: firstDateOfYear,
+                    $lt: currentDate,
+                },
+            },
+            { created_at: 1 }
+        );
+
         // Summary data
         const summaryData = await this.query({}, { created_at: -1 });
 
-        return await this.getInitialData(
+        const data = {
             previousDate,
             currentDate,
             weeklyData,
             fifteenData,
-            summaryData
-        );
+            summaryData,
+            annualData,
+        };
+
+        return await this.setInitialData(data);
     }
 
     async query(filter, sorter) {

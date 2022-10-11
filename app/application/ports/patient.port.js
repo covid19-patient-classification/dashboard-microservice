@@ -2,10 +2,11 @@
 
 const config = require('../../infrastructure/resources/config');
 const dateFormat = require('date-and-time');
+const es = require('date-and-time/locale/es');
 const lodash = require('lodash');
 const formatParsed = 'D/M/YYYY HH:mm:ss';
 
-dateFormat.locale(config.dateZone);
+dateFormat.locale(es);
 class PatientOutputPort {
     constructor() {
         if (this.constructor === PatientOutputPort) {
@@ -19,6 +20,15 @@ class PatientOutputPort {
 
     getByDate(date) {
         throw new Error('Method "getByDate()" must be implemented');
+    }
+
+    capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    dateToString(date, format) {
+        date = this.setLocalTimeZone(date, format);
+        return this.capitalize(date.replace('.', ''));
     }
 
     setDateFormat(date, format) {
@@ -37,6 +47,10 @@ class PatientOutputPort {
         return new Date();
     }
 
+    getFirstDateOfYear() {
+        return new Date(`01/01/${new Date().getFullYear()}`);
+    }
+
     getPreviousPeriod(currentDate, variation) {
         return new Date(
             currentDate.getFullYear(),
@@ -45,21 +59,21 @@ class PatientOutputPort {
         );
     }
 
-    getWeeklyDates(data, format) {
+    getDatesByFormat(data, format) {
         const dates = [];
         data.map((patient) => {
-            let date = this.setLocalTimeZone(patient.created_at, format);
+            let date = this.dateToString(patient.created_at, format);
             dates.push(date);
         });
-        const weeklyDates = Array.from(new Set(dates)).sort();
+        const weeklyDates = Array.from(new Set(dates));
         return weeklyDates;
     }
 
     listPatientSeverityByDate(data, dates, format) {
         const countPatients = {
-            moderate: [],
-            serius: [],
-            critical: [],
+            moderate: {data: [], total: 0},
+            serius:{data: [], total: 0},
+            critical: {data: [], total: 0},
         };
 
         dates.map((date) => {
@@ -67,10 +81,7 @@ class PatientOutputPort {
             let numberOfSeriusPatients = 0;
             let numberOfCriticalPatients = 0;
             data.map((patient) => {
-                let currentDate = this.setLocalTimeZone(
-                    patient.created_at,
-                    format
-                );
+                let currentDate = this.dateToString(patient.created_at, format);
                 if (currentDate === date) {
                     if (patient.covid19_severity.toLowerCase() === 'moderado') {
                         numberOfModeratePatients++;
@@ -83,82 +94,120 @@ class PatientOutputPort {
                     }
                 }
             });
-            countPatients.moderate.push(numberOfModeratePatients);
-            countPatients.serius.push(numberOfSeriusPatients);
-            countPatients.critical.push(numberOfCriticalPatients);
+            countPatients.moderate.data.push(numberOfModeratePatients);
+            countPatients.serius.data.push(numberOfSeriusPatients);
+            countPatients.critical.data.push(numberOfCriticalPatients);
         });
+        countPatients.moderate.total = lodash.sum(countPatients.moderate.data)
+        countPatients.serius.total = lodash.sum(countPatients.serius.data)
+        countPatients.critical.total = lodash.sum(countPatients.critical.data)
 
         return countPatients;
     }
 
-    getPercentageDifference(arrayCurrentValues, arrayLastValues) {
-        if (lodash.sum(arrayLastValues) === 0) {
-            return lodash.sum(arrayCurrentValues) * 100;
+    getPercentageDifference(totalCurrentPeriod, totalPreviousPeriod) {
+        if (totalPreviousPeriod === 0) {
+            return totalCurrentPeriod * 100;
         }
 
-        return (
-            (lodash.sum(arrayCurrentValues) * 100) /
-                lodash.sum(arrayLastValues) -
-            100
-        );
+        return ((totalCurrentPeriod - totalPreviousPeriod) / totalPreviousPeriod) * 100;
     }
 
-    async getInitialData(startDate, endDate, weeKlyData, fifteenData, summaryData) {
+    async setInitialData(data) {
         const weeKlyFormat = 'DD MMM';
-        const weeklyDates = this.getWeeklyDates(weeKlyData, weeKlyFormat);
+        const weeklyDates = this.getDatesByFormat(
+            data.weeklyData,
+            weeKlyFormat
+        );
         const countWeeklyPatients = this.listPatientSeverityByDate(
-            weeKlyData,
+            data.weeklyData,
             weeklyDates,
             weeKlyFormat
         );
 
         // Data from 15 days ago
-        const fifteenDates = this.getWeeklyDates(fifteenData, weeKlyFormat);
+        const fifteenDates = this.getDatesByFormat(
+            data.fifteenData,
+            weeKlyFormat
+        );
         const countFifteenPatients = this.listPatientSeverityByDate(
-            fifteenData,
+            data.fifteenData,
             fifteenDates,
             weeKlyFormat
         );
 
+        // Data from all year
+        const annualFormat = 'MMMM';
+        const annualDates = this.getDatesByFormat(
+            data.annualData,
+            annualFormat
+        );
+        const countAnnualPatients = this.listPatientSeverityByDate(
+            data.annualData,
+            annualDates,
+            annualFormat
+        );
+
         return {
             weekly_ranking: {
-                start_date: startDate,
-                end_date: endDate,
+                start_date: data.previousDate,
+                end_date: data.currentDate,
                 labels: weeklyDates,
-                values: {
+                data: {
                     moderate_patients: {
                         label: 'Pacientes Moderados',
-                        data: countWeeklyPatients.moderate,
-                        total: lodash.sum(countWeeklyPatients.moderate),
+                        data: countWeeklyPatients.moderate.data,
+                        total: countWeeklyPatients.moderate.total,
                         percentage: this.getPercentageDifference(
-                            countWeeklyPatients.moderate,
-                            countFifteenPatients.moderate
+                            countWeeklyPatients.moderate.total,
+                            countFifteenPatients.moderate.total
                         ),
                         percentage_label: 'desde la semana pasada',
                     },
                     serius_patients: {
                         label: 'Pacientes Graves',
-                        data: countWeeklyPatients.serius,
-                        total: lodash.sum(countWeeklyPatients.serius),
+                        data: countWeeklyPatients.serius.data,
+                        total: countWeeklyPatients.serius.total,
                         percentage: this.getPercentageDifference(
-                            countWeeklyPatients.serius,
-                            countFifteenPatients.serius
+                            countWeeklyPatients.serius.total,
+                            countFifteenPatients.serius.total
                         ),
                         percentage_label: 'desde la semana pasada',
                     },
                     critical_patients: {
                         label: 'Pacientes Críticos',
-                        data: countWeeklyPatients.critical,
-                        total: lodash.sum(countWeeklyPatients.critical),
+                        data: countWeeklyPatients.critical.data,
+                        total: countWeeklyPatients.critical.total,
                         percentage: this.getPercentageDifference(
-                            countWeeklyPatients.critical,
-                            countFifteenPatients.critical
+                            countWeeklyPatients.critical.total,
+                            countFifteenPatients.critical.total
                         ),
                         percentage_label: 'desde la semana pasada',
                     },
                 },
             },
-            summary: { patients: summaryData },
+            annual_ranking: {
+                labels: annualDates,
+                data: {
+                    moderate_patients: {
+                        label: 'Pacientes Moderados',
+                        data: countAnnualPatients.moderate.data,
+                    },
+                    serius_patients: {
+                        label: 'Pacientes Graves',
+                        data: countAnnualPatients.serius.data,
+                    },
+                    critical_patients: {
+                        label: 'Pacientes Críticos',
+                        data: countAnnualPatients.critical.data,
+                    },
+                },
+                total:
+                    countAnnualPatients.moderate.total +
+                    countAnnualPatients.serius.total +
+                    countAnnualPatients.critical.total,
+            },
+            summary: { patients: data.summaryData },
         };
     }
 }
