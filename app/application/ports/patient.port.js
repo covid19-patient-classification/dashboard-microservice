@@ -130,7 +130,6 @@ class PatientOutputPort {
             data.weeklyData,
             weeKlyFormat
         );
-        console.log(weeklyDates);
         const countWeeklyPatients = this.listPatientSeverityByDate(
             data.weeklyData,
             weeklyDates,
