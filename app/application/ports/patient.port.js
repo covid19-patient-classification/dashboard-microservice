@@ -165,8 +165,8 @@ class PatientOutputPort {
 
         return {
             weekly_ranking: {
-                start_date: data.previousDate,
-                end_date: data.currentDate,
+                start_date: this.setLocalTimeZone(data.previousDate, 'DD de MMMM'),
+                end_date: 'Hoy',
                 labels: weeklyDates,
                 data: {
                     moderate_patients: {
@@ -238,6 +238,10 @@ class PatientOutputPort {
                         total: data.totalCriticalPatients,
                     },
                 },
+                total:
+                    data.totalModeratePatients +
+                    data.totalSeriusPatients +
+                    data.totalCriticalPatients,
             },
             summary: { patients: data.summaryData },
         };
