@@ -90,7 +90,7 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             totalPatientsOfPreviousYear,
             totalModeratePatients,
             totalSeriusPatients,
-            totalCriticalPatients
+            totalCriticalPatients,
         };
 
         return await this.setInitialData(data);
@@ -109,6 +109,22 @@ class PatientMongoDBAdapter extends PatientOutputPort {
         database.connect(config.dbUrl, {
             useNewUrlParser: true,
         });
+    }
+
+    changeDateFormat(patients) {
+        patients.aggregate([
+            {
+                $project: {
+                    created_at: {
+                        $dateFromString: {
+                            dateString: '$created_at',
+                            format: '%d %m %Y',
+                        },
+                    },
+                },
+            },
+        ]);
+        return patients;
     }
 }
 

@@ -165,7 +165,10 @@ class PatientOutputPort {
 
         return {
             weekly_ranking: {
-                start_date: this.setLocalTimeZone(data.previousDate, 'DD de MMMM'),
+                start_date: this.setLocalTimeZone(
+                    data.previousDate,
+                    'DD de MMMM'
+                ),
                 end_date: 'Hoy',
                 labels: weeklyDates,
                 data: {
