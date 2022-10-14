@@ -5,8 +5,15 @@ const patientMongoDBAdapter = new PatientMongoDBAdapter();
 
 router.get('/', async (req, res, next) => {
     try {
-        const patients = await patientMongoDBAdapter.list();
-        res.send(patients);
+        const queryParams = req.query;
+        if (Object.keys(req.query).length > 0) {
+            const result = await patientMongoDBAdapter.filterPatient(queryParams)
+            res.send(result);
+        }else{
+            const patients = await patientMongoDBAdapter.list();
+            res.send(patients);
+        }
+
     } catch (error) {
         next(error);
     }
