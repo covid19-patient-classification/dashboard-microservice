@@ -11,70 +11,95 @@ class PatientMongoDBAdapter extends PatientOutputPort {
         this.setupMongoDatabase();
     }
 
-    async list() {
-        const currentDate = this.getCurrentDate();
-        const weeklyVariation = 7;
-        const previousDate = this.getPreviousPeriod(
+    setGeneralFilter(startDate, endDate, covid19Severity) {
+        const filter = {
+            created_at: {
+                $gte: startDate,
+                $lt: endDate,
+            },
+        };
+
+        if (covid19Severity) filter.covid19_severity = covid19Severity;
+
+        return filter;
+    }
+
+    async getLastSevenDaysData(previousDate, currentDate, covid19Severity) {
+        const filter = this.setGeneralFilter(
+            previousDate,
             currentDate,
-            weeklyVariation
+            covid19Severity
         );
 
-        const weeklyData = await this.query(
-            {
-                created_at: {
-                    $gte: previousDate,
-                    $lt: currentDate,
-                },
-            },
+        return await this.query(
+            filter,
             { created_at: 1 },
             'created_at covid19_severity'
         );
+    }
 
-        // Data from 15 days ago
+    async getFifteenData(previousDate, covid19Severity) {
+        const weeklyVariation = 7;
         const fifteenDate = this.getPreviousPeriod(
             previousDate,
             weeklyVariation
         );
-        const fifteenData = await this.query(
-            {
-                created_at: {
-                    $gte: fifteenDate,
-                    $lt: previousDate,
-                },
-            },
+        const filter = this.setGeneralFilter(
+            fifteenDate,
+            previousDate,
+            covid19Severity
+        );
+
+        return await this.query(
+            filter,
             { created_at: 1 },
             'created_at covid19_severity'
         );
+    }
+
+    async getAnnualData(currentDate) {
+        const filter = this.setGeneralFilter(
+            this.getFirstDateOfYear(),
+            currentDate
+        );
+        return await this.query(
+            filter,
+            { created_at: 1 },
+            'created_at covid19_severity'
+        );
+    }
+
+    async list() {
+        const { previousDate, currentDate } = this.getLastSevenDates();
+
+        const weeklyData = await this.getLastSevenDaysData(
+            previousDate,
+            currentDate
+        );
+
+        // Data from 15 days ago
+        const fifteenData = await this.getFifteenData(previousDate);
 
         // Data all year
-        const annualData = await this.query(
-            {
-                created_at: {
-                    $gte: this.getFirstDateOfYear(),
-                    $lt: currentDate,
-                },
-            },
-            { created_at: 1 },
-            'created_at covid19_severity'
-        );
+        const annualData = await this.getAnnualData(currentDate);
 
         // Data from previous year
-        const totalPatientsOfPreviousYear = await this.count({
-            created_at: {
-                $gte: this.getFirstDateOfPreviousYear(),
-                $lt: this.getLastDateOfPreviousYear(),
-            },
-        });
+        const totalPatientsOfPreviousYear = await this.count(
+            this.setGeneralFilter(
+                this.getFirstDateOfPreviousYear(),
+                this.getLastDateOfPreviousYear()
+            )
+        );
 
         // Total ranking
         const totalModeratePatients = await this.count({
-            covid19_severity: 'Moderado',
+            covid19_severity: this.severityKeywords.moderate.shortLabel,
         });
         const totalSeriusPatients = await this.count({
-            covid19_severity: 'Grave',
+            covid19_severity: this.severityKeywords.serius.shortLabel,
         });
         const totalCriticalPatients = await this.count({
-            covid19_severity: 'Crítico',
+            covid19_severity: this.severityKeywords.critical.shortLabel,
         });
 
         // Summary data
@@ -96,8 +121,49 @@ class PatientMongoDBAdapter extends PatientOutputPort {
         return await this.setInitialData(data);
     }
 
+    async filterPatient(queryParams) {
+        const covid19Severity = queryParams.covid19Severity;
+        if (covid19Severity) {
+            if (queryParams.dateRange) {
+                const dateRange = queryParams.dateRange.toLowerCase();
+                if (dateRange === 'lastsevendays') {
+                    const { previousDate, currentDate } =
+                        this.getLastSevenDates();
+                    const weeklyData = await this.getLastSevenDaysData(
+                        previousDate,
+                        currentDate,
+                        this.severityKeywords[covid19Severity].shortLabel
+                    );
+                    const fifteenData = await this.getFifteenData(
+                        previousDate,
+                        this.severityKeywords[covid19Severity].shortLabel
+                    );
+                    const data = {
+                        startDate: previousDate,
+                        endDate: currentDate,
+                        startData: weeklyData,
+                        endData: fifteenData,
+                        severity: covid19Severity,
+                        dateRange: queryParams.dateRange
+
+                    };
+                    return await this.setCardRanking(data);
+                }
+                if (dateRange === 'lastweek') {
+                    console.log(2, queryParams);
+                }
+                if (dateRange === 'lastmonth') {
+                    console.log(3, queryParams);
+                }
+            } else {
+                console.log(4, queryParams);
+            }
+        } else {
+            console.log(5, queryParams);
+        }
+    }
+
     async query(filter, sorter, selecter) {
-        // const result = await patientModel.find(filter)
         return await patientModel.find(filter).sort(sorter).select(selecter);
     }
 
@@ -109,22 +175,6 @@ class PatientMongoDBAdapter extends PatientOutputPort {
         database.connect(config.dbUrl, {
             useNewUrlParser: true,
         });
-    }
-
-    changeDateFormat(patients) {
-        patients.aggregate([
-            {
-                $project: {
-                    created_at: {
-                        $dateFromString: {
-                            dateString: '$created_at',
-                            format: '%d %m %Y',
-                        },
-                    },
-                },
-            },
-        ]);
-        return patients;
     }
 }
 

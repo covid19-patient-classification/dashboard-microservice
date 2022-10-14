@@ -12,6 +12,23 @@ class PatientOutputPort {
         if (this.constructor === PatientOutputPort) {
             throw new Error('Class "PatientOutputPort" cannot be instantiated');
         }
+        this.severityKeywords = {
+            moderate: {
+                shortLabel: 'Moderado',
+                largeLabel: 'Pacientes Moderados',
+            },
+            serius: { shortLabel: 'Grave', largeLabel: 'Pacientes Graves' },
+            critical: {
+                shortLabel: 'Crítico',
+                largeLabel: 'Pacientes Críticos',
+            },
+        };
+        this.percentageLabels = {
+            lastSevenDays: 'desde la semana pasada',
+            lastWeek: 'de la semana actual',
+            lastMonth: 'desde el mes anterior',
+            default: 'desde la semana pasada',
+        };
     }
 
     list() {
@@ -124,6 +141,16 @@ class PatientOutputPort {
         );
     }
 
+    getLastSevenDates() {
+        const currentDate = this.getCurrentDate();
+        const weeklyVariation = 7;
+        const previousDate = this.getPreviousPeriod(
+            currentDate,
+            weeklyVariation
+        );
+        return { previousDate, currentDate };
+    }
+
     async setInitialData(data) {
         const weeKlyFormat = 'DD MMM';
         const weeklyDates = this.getDatesByFormat(
@@ -165,42 +192,39 @@ class PatientOutputPort {
 
         return {
             weekly_ranking: {
-                start_date: this.setLocalTimeZone(
-                    data.previousDate,
-                    'DD de MMMM'
-                ),
-                end_date: 'Hoy',
+                start_date: this.setLocalTimeZone(data.previousDate, 'MM/DD/YYYY'),
+                end_date: this.setLocalTimeZone(data.currentDate, 'MM/DD/YYYY'),
                 labels: weeklyDates,
                 data: {
                     moderate_patients: {
-                        label: 'Pacientes Moderados',
+                        label: this.severityKeywords.moderate.largeLabel,
                         data: countWeeklyPatients.moderate.data,
                         total: countWeeklyPatients.moderate.total,
                         percentage: this.getPercentageDifference(
                             countWeeklyPatients.moderate.total,
                             countFifteenPatients.moderate.total
                         ),
-                        percentage_label: 'desde la semana pasada',
+                        percentage_label: this.percentageLabels.default,
                     },
                     serius_patients: {
-                        label: 'Pacientes Graves',
+                        label: this.severityKeywords.serius.largeLabel,
                         data: countWeeklyPatients.serius.data,
                         total: countWeeklyPatients.serius.total,
                         percentage: this.getPercentageDifference(
                             countWeeklyPatients.serius.total,
                             countFifteenPatients.serius.total
                         ),
-                        percentage_label: 'desde la semana pasada',
+                        percentage_label: this.percentageLabels.default,
                     },
                     critical_patients: {
-                        label: 'Pacientes Críticos',
+                        label: this.severityKeywords.critical.largeLabel,
                         data: countWeeklyPatients.critical.data,
                         total: countWeeklyPatients.critical.total,
                         percentage: this.getPercentageDifference(
                             countWeeklyPatients.critical.total,
                             countFifteenPatients.critical.total
                         ),
-                        percentage_label: 'desde la semana pasada',
+                        percentage_label: this.percentageLabels.default,
                     },
                 },
             },
@@ -208,15 +232,15 @@ class PatientOutputPort {
                 labels: annualDates,
                 data: {
                     moderate_patients: {
-                        label: 'Pacientes Moderados',
+                        label: this.severityKeywords.moderate.largeLabel,
                         data: countAnnualPatients.moderate.data,
                     },
                     serius_patients: {
-                        label: 'Pacientes Graves',
+                        label: this.severityKeywords.serius.largeLabel,
                         data: countAnnualPatients.serius.data,
                     },
                     critical_patients: {
-                        label: 'Pacientes Críticos',
+                        label: this.severityKeywords.critical.largeLabel,
                         data: countAnnualPatients.critical.data,
                     },
                 },
@@ -229,15 +253,15 @@ class PatientOutputPort {
             total_ranking: {
                 data: {
                     moderate_patients: {
-                        label: 'Pacientes Moderados',
+                        label: this.severityKeywords.moderate.largeLabel,
                         total: data.totalModeratePatients,
                     },
                     serius_patients: {
-                        label: 'Pacientes Graves',
+                        label: this.severityKeywords.serius.largeLabel,
                         total: data.totalSeriusPatients,
                     },
                     critical_patients: {
-                        label: 'Pacientes Críticos',
+                        label: this.severityKeywords.critical.largeLabel,
                         total: data.totalCriticalPatients,
                     },
                 },
@@ -247,6 +271,24 @@ class PatientOutputPort {
                     data.totalCriticalPatients,
             },
             summary: { patients: data.summaryData },
+        };
+    }
+
+    async setCardRanking(data) {
+        return {
+            start_date: this.setLocalTimeZone(data.startDate, 'MM/DD/YYYY'),
+            end_date: this.setLocalTimeZone(data.endDate, 'MM/DD/YYYY'),
+            data: {
+                patients: {
+                    label: this.severityKeywords[data.severity].largeLabel,
+                    total: data.startData.length,
+                    percentage: this.getPercentageDifference(
+                        data.startData.length,
+                        data.endData.length
+                    ),
+                    percentage_label: this.percentageLabels[data.dateRange],
+                },
+            },
         };
     }
 }
