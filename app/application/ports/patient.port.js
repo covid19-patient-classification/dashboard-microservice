@@ -61,7 +61,7 @@ class PatientOutputPort {
     }
 
     getCurrentDate() {
-        return new Date();
+        return new Date(this.setLocalTimeZone(new Date(), 'MM/DD/YYYY'));
     }
 
     getFirstDateOfYear() {

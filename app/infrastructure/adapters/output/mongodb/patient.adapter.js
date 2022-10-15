@@ -32,14 +32,18 @@ class PatientMongoDBAdapter extends PatientOutputPort {
         return await this.query(filter, { created_at: 1 }, 'created_at covid19_severity');
     }
 
+    async getFifteenDaysData(currentDate, covid19Severity) {
+        const previousDate = this.getPreviousPeriod(currentDate, this.sevenDaysVariation + 1);
+        const fifteenDate = this.getPreviousPeriod(previousDate, this.sevenDaysVariation);
+        const previousWeekData = await this.filterPatient(fifteenDate, previousDate, covid19Severity);
+        return { previousWeekData, previousDate, fifteenDate };
+    }
+
     async getLastSevenDaysData(covid19Severity) {
         const { previousDate, currentDate } = this.getLastSevenDates();
         const lastSevenDaysData = await this.filterPatient(previousDate, currentDate, covid19Severity);
-        const fifteenDate = this.getPreviousPeriod(previousDate, this.sevenDaysVariation);
-        const previousWeekData = await this.filterPatient(fifteenDate, previousDate, covid19Severity);
         return {
             lastSevenDaysData,
-            previousWeekData,
             currentDate,
             previousDate,
         };
@@ -54,7 +58,8 @@ class PatientMongoDBAdapter extends PatientOutputPort {
     }
 
     async list() {
-        const { lastSevenDaysData, previousWeekData, currentDate, previousDate } = await this.getLastSevenDaysData();
+        const { lastSevenDaysData, currentDate, previousDate } = await this.getLastSevenDaysData();
+        const { previousWeekData } = await this.getFifteenDaysData(currentDate);
         const { annualData, totalPatientsOfPreviousYear } = await this.getAnnualData(currentDate);
         const totalModeratePatients = await this.count({
             covid19_severity: this.covid19Severities.moderate.shortLabel,
@@ -84,28 +89,51 @@ class PatientMongoDBAdapter extends PatientOutputPort {
     }
 
     async filterDataByParams(queryParams) {
-        const severity = queryParams.covid19Severity;
-        if (severity) {
+        if (queryParams.covid19Severity) {
+            const severity = this.covid19Severities[queryParams.covid19Severity].shortLabel;
             if (queryParams.dateRange) {
                 const dateRange = queryParams.dateRange.toLowerCase();
                 if (dateRange === 'lastsevendays') {
-                    const { lastSevenDaysData, previousWeekData, currentDate, previousDate } = await this.getLastSevenDaysData(this.covid19Severities[severity].shortLabel);
+                    const { lastSevenDaysData, currentDate, previousDate } = await this.getLastSevenDaysData(severity);
+                    const { previousWeekData } = await this.getFifteenDaysData(currentDate, severity);
 
                     return await this.setCardRanking({
                         startDate: previousDate,
                         endDate: currentDate,
                         startData: lastSevenDaysData,
                         endData: previousWeekData,
-                        severity: severity,
+                        severity: queryParams.covid19Severity,
                         dateRange: queryParams.dateRange,
                     });
                 }
                 if (dateRange === 'lastweek') {
-                    console.log(2, queryParams);
+                    const { lastSevenDaysData, currentDate } = await this.getLastSevenDaysData(severity);
+                    const { previousWeekData, previousDate, fifteenDate } = await this.getFifteenDaysData(currentDate, severity);
+                    return await this.setCardRanking({
+                        startDate: fifteenDate,
+                        endDate: previousDate,
+                        startData: previousWeekData,
+                        endData: lastSevenDaysData,
+                        severity: queryParams.covid19Severity,
+                        dateRange: queryParams.dateRange,
+                    });
                 }
-                if (dateRange === 'lastmonth') {
-                    console.log(3, queryParams);
-                }
+                // Date range is lastMont
+                const currentDate = this.getCurrentDate();
+                const previousDate = this.getPreviousPeriod(currentDate, this.thirtyDaysVariation);
+                const startData = await this.filterPatient(previousDate, currentDate, severity);
+                const lastDayPreviousMonth = this.getPreviousPeriod(previousDate, 1);
+                const firstDayPreviousMonth = this.getPreviousPeriod(lastDayPreviousMonth, this.thirtyDaysVariation);
+                const endData = await this.filterPatient(firstDayPreviousMonth, lastDayPreviousMonth, severity);
+
+                return await this.setCardRanking({
+                    startDate: previousDate,
+                    endDate: currentDate,
+                    startData: startData,
+                    endData: endData,
+                    severity: queryParams.covid19Severity,
+                    dateRange: queryParams.dateRange,
+                })
             } else {
                 console.log(4, queryParams);
             }
