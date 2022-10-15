@@ -27,35 +27,16 @@ class PatientMongoDBAdapter extends PatientOutputPort {
     }
 
     async filterPatient(startDate, endDate, covid19Severity) {
-        const filter = this.setGeneralFilter(
-            startDate,
-            endDate,
-            covid19Severity
-        );
+        const filter = this.setGeneralFilter(startDate, endDate, covid19Severity);
 
-        return await this.query(
-            filter,
-            { created_at: 1 },
-            'created_at covid19_severity'
-        );
+        return await this.query(filter, { created_at: 1 }, 'created_at covid19_severity');
     }
 
     async getLastSevenDaysData(covid19Severity) {
         const { previousDate, currentDate } = this.getLastSevenDates();
-        const lastSevenDaysData = await this.filterPatient(
-            previousDate,
-            currentDate,
-            covid19Severity
-        );
-        const fifteenDate = this.getPreviousPeriod(
-            previousDate,
-            this.sevenDaysVariation
-        );
-        const previousWeekData = await this.filterPatient(
-            fifteenDate,
-            previousDate,
-            covid19Severity
-        );
+        const lastSevenDaysData = await this.filterPatient(previousDate, currentDate, covid19Severity);
+        const fifteenDate = this.getPreviousPeriod(previousDate, this.sevenDaysVariation);
+        const previousWeekData = await this.filterPatient(fifteenDate, previousDate, covid19Severity);
         return {
             lastSevenDaysData,
             previousWeekData,
@@ -67,30 +48,14 @@ class PatientMongoDBAdapter extends PatientOutputPort {
     async getAnnualData(currentDate) {
         const firstDayYear = this.getFirstDateOfYear();
         const annualData = await this.filterPatient(firstDayYear, currentDate);
-        const totalPatientsOfPreviousYear = await this.count(
-            this.setGeneralFilter(
-                this.getFirstDateOfPreviousYear(),
-                this.getLastDateOfPreviousYear()
-            )
-        );
+        const totalPatientsOfPreviousYear = await this.count(this.setGeneralFilter(this.getFirstDateOfPreviousYear(), this.getLastDateOfPreviousYear()));
 
         return { annualData, totalPatientsOfPreviousYear };
     }
 
     async list() {
-        // Data of last seven days
-        const {
-            lastSevenDaysData,
-            previousWeekData,
-            currentDate,
-            previousDate,
-        } = await this.getLastSevenDaysData();
-
-        // Data all year
-        const { annualData, totalPatientsOfPreviousYear } =
-            await this.getAnnualData(currentDate);
-
-        // Total ranking
+        const { lastSevenDaysData, previousWeekData, currentDate, previousDate } = await this.getLastSevenDaysData();
+        const { annualData, totalPatientsOfPreviousYear } = await this.getAnnualData(currentDate);
         const totalModeratePatients = await this.count({
             covid19_severity: this.covid19Severities.moderate.shortLabel,
         });
@@ -100,8 +65,6 @@ class PatientMongoDBAdapter extends PatientOutputPort {
         const totalCriticalPatients = await this.count({
             covid19_severity: this.covid19Severities.critical.shortLabel,
         });
-
-        // Summary data
         const summaryData = await this.query({}, { created_at: -1 });
 
         return await this.setInitialData({
@@ -126,7 +89,8 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             if (queryParams.dateRange) {
                 const dateRange = queryParams.dateRange.toLowerCase();
                 if (dateRange === 'lastsevendays') {
-                    const { lastSevenDaysData, previousWeekData, currentDate, previousDate }= await this.getLastSevenDaysData(this.covid19Severities[severity].shortLabel);
+                    const { lastSevenDaysData, previousWeekData, currentDate, previousDate } = await this.getLastSevenDaysData(this.covid19Severities[severity].shortLabel);
+
                     return await this.setCardRanking({
                         startDate: previousDate,
                         endDate: currentDate,

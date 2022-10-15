@@ -77,11 +77,7 @@ class PatientOutputPort {
     }
 
     getPreviousPeriod(currentDate, variation) {
-        return new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth(),
-            currentDate.getDate() - variation
-        );
+        return new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - variation);
     }
 
     getDatesByFormat(data, format) {
@@ -135,68 +131,34 @@ class PatientOutputPort {
             return totalCurrentPeriod * 100;
         }
 
-        return (
-            ((totalCurrentPeriod - totalPreviousPeriod) / totalPreviousPeriod) *
-            100
-        );
+        return ((totalCurrentPeriod - totalPreviousPeriod) / totalPreviousPeriod) * 100;
     }
 
     getLastSevenDates() {
         const currentDate = this.getCurrentDate();
         const weeklyVariation = 7;
-        const previousDate = this.getPreviousPeriod(
-            currentDate,
-            weeklyVariation
-        );
+        const previousDate = this.getPreviousPeriod(currentDate, weeklyVariation);
         return { previousDate, currentDate };
     }
 
     async setInitialData(data) {
         const weeKlyFormat = 'DD MMM';
-        const weeklyDates = this.getDatesByFormat(
-            data.weeklyData,
-            weeKlyFormat
-        );
-        const countWeeklyPatients = this.listPatientSeverityByDate(
-            data.weeklyData,
-            weeklyDates,
-            weeKlyFormat
-        );
+        const weeklyDates = this.getDatesByFormat(data.weeklyData, weeKlyFormat);
+        const countWeeklyPatients = this.listPatientSeverityByDate(data.weeklyData, weeklyDates, weeKlyFormat);
 
         // Data from 15 days ago
-        const fifteenDates = this.getDatesByFormat(
-            data.fifteenData,
-            weeKlyFormat
-        );
-        const countFifteenPatients = this.listPatientSeverityByDate(
-            data.fifteenData,
-            fifteenDates,
-            weeKlyFormat
-        );
+        const fifteenDates = this.getDatesByFormat(data.fifteenData, weeKlyFormat);
+        const countFifteenPatients = this.listPatientSeverityByDate(data.fifteenData, fifteenDates, weeKlyFormat);
 
         // Data from all year
         const annualFormat = 'MMMM';
-        const annualDates = this.getDatesByFormat(
-            data.annualData,
-            annualFormat
-        );
-        const countAnnualPatients = this.listPatientSeverityByDate(
-            data.annualData,
-            annualDates,
-            annualFormat
-        );
-        const totalAnnualPtients =
-            countAnnualPatients.moderate.total +
-            countAnnualPatients.serius.total +
-            countAnnualPatients.critical.total;
-
+        const annualDates = this.getDatesByFormat(data.annualData, annualFormat);
+        const countAnnualPatients = this.listPatientSeverityByDate(data.annualData, annualDates, annualFormat);
+        const totalAnnualPtients = countAnnualPatients.moderate.total + countAnnualPatients.serius.total + countAnnualPatients.critical.total;
 
         return {
             weekly_ranking: {
-                start_date: this.setLocalTimeZone(
-                    data.starDate,
-                    'MM/DD/YYYY'
-                ),
+                start_date: this.setLocalTimeZone(data.starDate, 'MM/DD/YYYY'),
                 end_date: this.setLocalTimeZone(data.endDate, 'MM/DD/YYYY'),
                 labels: weeklyDates,
                 data: {
@@ -204,30 +166,21 @@ class PatientOutputPort {
                         label: this.covid19Severities.moderate.largeLabel,
                         data: countWeeklyPatients.moderate.data,
                         total: countWeeklyPatients.moderate.total,
-                        percentage: this.getPercentageDifference(
-                            countWeeklyPatients.moderate.total,
-                            countFifteenPatients.moderate.total
-                        ),
+                        percentage: this.getPercentageDifference(countWeeklyPatients.moderate.total, countFifteenPatients.moderate.total),
                         percentage_label: this.percentageLabels.default,
                     },
                     serius_patients: {
                         label: this.covid19Severities.serius.largeLabel,
                         data: countWeeklyPatients.serius.data,
                         total: countWeeklyPatients.serius.total,
-                        percentage: this.getPercentageDifference(
-                            countWeeklyPatients.serius.total,
-                            countFifteenPatients.serius.total
-                        ),
+                        percentage: this.getPercentageDifference(countWeeklyPatients.serius.total, countFifteenPatients.serius.total),
                         percentage_label: this.percentageLabels.default,
                     },
                     critical_patients: {
                         label: this.covid19Severities.critical.largeLabel,
                         data: countWeeklyPatients.critical.data,
                         total: countWeeklyPatients.critical.total,
-                        percentage: this.getPercentageDifference(
-                            countWeeklyPatients.critical.total,
-                            countFifteenPatients.critical.total
-                        ),
+                        percentage: this.getPercentageDifference(countWeeklyPatients.critical.total, countFifteenPatients.critical.total),
                         percentage_label: this.percentageLabels.default,
                     },
                 },
@@ -249,10 +202,7 @@ class PatientOutputPort {
                     },
                 },
                 total: totalAnnualPtients,
-                total_percentage: this.getPercentageDifference(
-                    totalAnnualPtients,
-                    data.totalPatientsOfPreviousYear
-                ),
+                total_percentage: this.getPercentageDifference(totalAnnualPtients, data.totalPatientsOfPreviousYear),
             },
             total_ranking: {
                 data: {
@@ -269,10 +219,7 @@ class PatientOutputPort {
                         total: data.totalRanking.critical,
                     },
                 },
-                total:
-                    data.totalRanking.moderate +
-                    data.totalRanking.serius +
-                    data.totalRanking.critical,
+                total: data.totalRanking.moderate + data.totalRanking.serius + data.totalRanking.critical,
             },
             summary: { patients: data.summaryData },
         };
@@ -286,10 +233,7 @@ class PatientOutputPort {
                 patients: {
                     label: this.covid19Severities[data.severity].largeLabel,
                     total: data.startData.length,
-                    percentage: this.getPercentageDifference(
-                        data.startData.length,
-                        data.endData.length
-                    ),
+                    percentage: this.getPercentageDifference(data.startData.length, data.endData.length),
                     percentage_label: this.percentageLabels[data.dateRange],
                 },
             },
