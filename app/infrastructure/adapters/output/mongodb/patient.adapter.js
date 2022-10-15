@@ -126,26 +126,15 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             if (queryParams.dateRange) {
                 const dateRange = queryParams.dateRange.toLowerCase();
                 if (dateRange === 'lastsevendays') {
-                    const { previousDate, currentDate } =
-                        this.getLastSevenDates();
-                    const weeklyData = await this.getLastSevenDaysData(
-                        previousDate,
-                        currentDate,
-                        this.covid19Severities[severity].shortLabel
-                    );
-                    const fifteenData = await this.getFifteenData(
-                        previousDate,
-                        this.covid19Severities[severity].shortLabel
-                    );
-                    const data = {
+                    const { lastSevenDaysData, previousWeekData, currentDate, previousDate }= await this.getLastSevenDaysData(this.covid19Severities[severity].shortLabel);
+                    return await this.setCardRanking({
                         startDate: previousDate,
                         endDate: currentDate,
-                        startData: weeklyData,
-                        endData: fifteenData,
+                        startData: lastSevenDaysData,
+                        endData: previousWeekData,
                         severity: severity,
                         dateRange: queryParams.dateRange,
-                    };
-                    return await this.setCardRanking(data);
+                    });
                 }
                 if (dateRange === 'lastweek') {
                     console.log(2, queryParams);
