@@ -9,6 +9,8 @@ class PatientMongoDBAdapter extends PatientOutputPort {
     constructor() {
         super();
         this.setupMongoDatabase();
+        this.sevenDaysVariation = 7;
+        this.thirtyDaysVariation = 30;
     }
 
     setGeneralFilter(startDate, endDate, covid19Severity) {
@@ -24,66 +26,47 @@ class PatientMongoDBAdapter extends PatientOutputPort {
         return filter;
     }
 
-    async getLastSevenDaysData(previousDate, currentDate, covid19Severity) {
+    async filterPatient(startDate, endDate, covid19Severity) {
         const filter = this.setGeneralFilter(
+            startDate,
+            endDate,
+            covid19Severity
+        );
+
+        return await this.query(
+            filter,
+            { created_at: 1 },
+            'created_at covid19_severity'
+        );
+    }
+
+    async getLastSevenDaysData(covid19Severity) {
+        const { previousDate, currentDate } = this.getLastSevenDates();
+        const lastSevenDaysData = await this.filterPatient(
             previousDate,
             currentDate,
             covid19Severity
         );
-
-        return await this.query(
-            filter,
-            { created_at: 1 },
-            'created_at covid19_severity'
-        );
-    }
-
-    async getFifteenData(previousDate, covid19Severity) {
-        const weeklyVariation = 7;
         const fifteenDate = this.getPreviousPeriod(
             previousDate,
-            weeklyVariation
+            this.sevenDaysVariation
         );
-        const filter = this.setGeneralFilter(
+        const previousWeekData = await this.filterPatient(
             fifteenDate,
             previousDate,
             covid19Severity
         );
-
-        return await this.query(
-            filter,
-            { created_at: 1 },
-            'created_at covid19_severity'
-        );
+        return {
+            lastSevenDaysData,
+            previousWeekData,
+            currentDate,
+            previousDate,
+        };
     }
 
     async getAnnualData(currentDate) {
-        const filter = this.setGeneralFilter(
-            this.getFirstDateOfYear(),
-            currentDate
-        );
-        return await this.query(
-            filter,
-            { created_at: 1 },
-            'created_at covid19_severity'
-        );
-    }
-
-    async list() {
-        const { previousDate, currentDate } = this.getLastSevenDates();
-
-        const weeklyData = await this.getLastSevenDaysData(
-            previousDate,
-            currentDate
-        );
-
-        // Data from 15 days ago
-        const fifteenData = await this.getFifteenData(previousDate);
-
-        // Data all year
-        const annualData = await this.getAnnualData(currentDate);
-
-        // Data from previous year
+        const firstDayYear = this.getFirstDateOfYear();
+        const annualData = await this.filterPatient(firstDayYear, currentDate);
         const totalPatientsOfPreviousYear = await this.count(
             this.setGeneralFilter(
                 this.getFirstDateOfPreviousYear(),
@@ -91,39 +74,55 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             )
         );
 
+        return { annualData, totalPatientsOfPreviousYear };
+    }
+
+    async list() {
+        // Data of last seven days
+        const {
+            lastSevenDaysData,
+            previousWeekData,
+            currentDate,
+            previousDate,
+        } = await this.getLastSevenDaysData();
+
+        // Data all year
+        const { annualData, totalPatientsOfPreviousYear } =
+            await this.getAnnualData(currentDate);
+
         // Total ranking
         const totalModeratePatients = await this.count({
-            covid19_severity: this.severityKeywords.moderate.shortLabel,
+            covid19_severity: this.covid19Severities.moderate.shortLabel,
         });
         const totalSeriusPatients = await this.count({
-            covid19_severity: this.severityKeywords.serius.shortLabel,
+            covid19_severity: this.covid19Severities.serius.shortLabel,
         });
         const totalCriticalPatients = await this.count({
-            covid19_severity: this.severityKeywords.critical.shortLabel,
+            covid19_severity: this.covid19Severities.critical.shortLabel,
         });
 
         // Summary data
         const summaryData = await this.query({}, { created_at: -1 });
 
-        const data = {
-            previousDate,
-            currentDate,
-            weeklyData,
-            fifteenData,
-            summaryData,
-            annualData,
-            totalPatientsOfPreviousYear,
-            totalModeratePatients,
-            totalSeriusPatients,
-            totalCriticalPatients,
-        };
-
-        return await this.setInitialData(data);
+        return await this.setInitialData({
+            starDate: previousDate,
+            endDate: currentDate,
+            weeklyData: lastSevenDaysData,
+            fifteenData: previousWeekData,
+            annualData: annualData,
+            totalPatientsOfPreviousYear: totalPatientsOfPreviousYear,
+            totalRanking: {
+                moderate: totalModeratePatients,
+                serius: totalSeriusPatients,
+                critical: totalCriticalPatients,
+            },
+            summaryData: summaryData,
+        });
     }
 
-    async filterPatient(queryParams) {
-        const covid19Severity = queryParams.covid19Severity;
-        if (covid19Severity) {
+    async filterDataByParams(queryParams) {
+        const severity = queryParams.covid19Severity;
+        if (severity) {
             if (queryParams.dateRange) {
                 const dateRange = queryParams.dateRange.toLowerCase();
                 if (dateRange === 'lastsevendays') {
@@ -132,20 +131,19 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                     const weeklyData = await this.getLastSevenDaysData(
                         previousDate,
                         currentDate,
-                        this.severityKeywords[covid19Severity].shortLabel
+                        this.covid19Severities[severity].shortLabel
                     );
                     const fifteenData = await this.getFifteenData(
                         previousDate,
-                        this.severityKeywords[covid19Severity].shortLabel
+                        this.covid19Severities[severity].shortLabel
                     );
                     const data = {
                         startDate: previousDate,
                         endDate: currentDate,
                         startData: weeklyData,
                         endData: fifteenData,
-                        severity: covid19Severity,
-                        dateRange: queryParams.dateRange
-
+                        severity: severity,
+                        dateRange: queryParams.dateRange,
                     };
                     return await this.setCardRanking(data);
                 }

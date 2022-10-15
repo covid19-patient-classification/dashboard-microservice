@@ -12,7 +12,7 @@ class PatientOutputPort {
         if (this.constructor === PatientOutputPort) {
             throw new Error('Class "PatientOutputPort" cannot be instantiated');
         }
-        this.severityKeywords = {
+        this.covid19Severities = {
             moderate: {
                 shortLabel: 'Moderado',
                 largeLabel: 'Pacientes Moderados',
@@ -190,14 +190,18 @@ class PatientOutputPort {
             countAnnualPatients.serius.total +
             countAnnualPatients.critical.total;
 
+
         return {
             weekly_ranking: {
-                start_date: this.setLocalTimeZone(data.previousDate, 'MM/DD/YYYY'),
-                end_date: this.setLocalTimeZone(data.currentDate, 'MM/DD/YYYY'),
+                start_date: this.setLocalTimeZone(
+                    data.starDate,
+                    'MM/DD/YYYY'
+                ),
+                end_date: this.setLocalTimeZone(data.endDate, 'MM/DD/YYYY'),
                 labels: weeklyDates,
                 data: {
                     moderate_patients: {
-                        label: this.severityKeywords.moderate.largeLabel,
+                        label: this.covid19Severities.moderate.largeLabel,
                         data: countWeeklyPatients.moderate.data,
                         total: countWeeklyPatients.moderate.total,
                         percentage: this.getPercentageDifference(
@@ -207,7 +211,7 @@ class PatientOutputPort {
                         percentage_label: this.percentageLabels.default,
                     },
                     serius_patients: {
-                        label: this.severityKeywords.serius.largeLabel,
+                        label: this.covid19Severities.serius.largeLabel,
                         data: countWeeklyPatients.serius.data,
                         total: countWeeklyPatients.serius.total,
                         percentage: this.getPercentageDifference(
@@ -217,7 +221,7 @@ class PatientOutputPort {
                         percentage_label: this.percentageLabels.default,
                     },
                     critical_patients: {
-                        label: this.severityKeywords.critical.largeLabel,
+                        label: this.covid19Severities.critical.largeLabel,
                         data: countWeeklyPatients.critical.data,
                         total: countWeeklyPatients.critical.total,
                         percentage: this.getPercentageDifference(
@@ -232,15 +236,15 @@ class PatientOutputPort {
                 labels: annualDates,
                 data: {
                     moderate_patients: {
-                        label: this.severityKeywords.moderate.largeLabel,
+                        label: this.covid19Severities.moderate.largeLabel,
                         data: countAnnualPatients.moderate.data,
                     },
                     serius_patients: {
-                        label: this.severityKeywords.serius.largeLabel,
+                        label: this.covid19Severities.serius.largeLabel,
                         data: countAnnualPatients.serius.data,
                     },
                     critical_patients: {
-                        label: this.severityKeywords.critical.largeLabel,
+                        label: this.covid19Severities.critical.largeLabel,
                         data: countAnnualPatients.critical.data,
                     },
                 },
@@ -253,22 +257,22 @@ class PatientOutputPort {
             total_ranking: {
                 data: {
                     moderate_patients: {
-                        label: this.severityKeywords.moderate.largeLabel,
-                        total: data.totalModeratePatients,
+                        label: this.covid19Severities.moderate.largeLabel,
+                        total: data.totalRanking.moderate,
                     },
                     serius_patients: {
-                        label: this.severityKeywords.serius.largeLabel,
-                        total: data.totalSeriusPatients,
+                        label: this.covid19Severities.serius.largeLabel,
+                        total: data.totalRanking.serius,
                     },
                     critical_patients: {
-                        label: this.severityKeywords.critical.largeLabel,
-                        total: data.totalCriticalPatients,
+                        label: this.covid19Severities.critical.largeLabel,
+                        total: data.totalRanking.critical,
                     },
                 },
                 total:
-                    data.totalModeratePatients +
-                    data.totalSeriusPatients +
-                    data.totalCriticalPatients,
+                    data.totalRanking.moderate +
+                    data.totalRanking.serius +
+                    data.totalRanking.critical,
             },
             summary: { patients: data.summaryData },
         };
@@ -280,7 +284,7 @@ class PatientOutputPort {
             end_date: this.setLocalTimeZone(data.endDate, 'MM/DD/YYYY'),
             data: {
                 patients: {
-                    label: this.severityKeywords[data.severity].largeLabel,
+                    label: this.covid19Severities[data.severity].largeLabel,
                     total: data.startData.length,
                     percentage: this.getPercentageDifference(
                         data.startData.length,
