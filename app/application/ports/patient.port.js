@@ -141,7 +141,11 @@ class PatientOutputPort {
         return { previousDate, currentDate };
     }
 
-    async setInitialData(data) {
+    async setSummaryResponse(data) {
+        return { summary: { patients: data } };
+    }
+
+    async setInitialDataResponse(data) {
         const weeKlyFormat = 'DD MMM';
         const weeklyDates = this.getDatesByFormat(data.weeklyData, weeKlyFormat);
         const countWeeklyPatients = this.listPatientSeverityByDate(data.weeklyData, weeklyDates, weeKlyFormat);
@@ -225,7 +229,7 @@ class PatientOutputPort {
         };
     }
 
-    async setCardRanking(data) {
+    async setCardRankingResponse(data) {
         return {
             start_date: this.setLocalTimeZone(data.startDate, 'MM/DD/YYYY'),
             end_date: this.setLocalTimeZone(data.endDate, 'MM/DD/YYYY'),

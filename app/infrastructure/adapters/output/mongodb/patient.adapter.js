@@ -72,7 +72,7 @@ class PatientMongoDBAdapter extends PatientOutputPort {
         });
         const summaryData = await this.query({}, { created_at: -1 });
 
-        return await this.setInitialData({
+        return await this.setInitialDataResponse({
             starDate: previousDate,
             endDate: currentDate,
             weeklyData: lastSevenDaysData,
@@ -90,14 +90,14 @@ class PatientMongoDBAdapter extends PatientOutputPort {
 
     async filterDataByParams(queryParams) {
         if (queryParams.covid19Severity) {
-            const severity = this.covid19Severities[queryParams.covid19Severity].shortLabel;
             if (queryParams.dateRange) {
+                const severity = this.covid19Severities[queryParams.covid19Severity].shortLabel;
                 const dateRange = queryParams.dateRange.toLowerCase();
                 if (dateRange === 'lastsevendays') {
                     const { lastSevenDaysData, currentDate, previousDate } = await this.getLastSevenDaysData(severity);
                     const { previousWeekData } = await this.getFifteenDaysData(currentDate, severity);
 
-                    return await this.setCardRanking({
+                    return await this.setCardRankingResponse({
                         startDate: previousDate,
                         endDate: currentDate,
                         startData: lastSevenDaysData,
@@ -109,7 +109,7 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                 if (dateRange === 'lastweek') {
                     const { lastSevenDaysData, currentDate } = await this.getLastSevenDaysData(severity);
                     const { previousWeekData, previousDate, fifteenDate } = await this.getFifteenDaysData(currentDate, severity);
-                    return await this.setCardRanking({
+                    return await this.setCardRankingResponse({
                         startDate: fifteenDate,
                         endDate: previousDate,
                         startData: previousWeekData,
@@ -118,24 +118,32 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                         dateRange: queryParams.dateRange,
                     });
                 }
-                // Date range is lastMont
-                const currentDate = this.getCurrentDate();
-                const previousDate = this.getPreviousPeriod(currentDate, this.thirtyDaysVariation);
-                const startData = await this.filterPatient(previousDate, currentDate, severity);
-                const lastDayPreviousMonth = this.getPreviousPeriod(previousDate, 1);
-                const firstDayPreviousMonth = this.getPreviousPeriod(lastDayPreviousMonth, this.thirtyDaysVariation);
-                const endData = await this.filterPatient(firstDayPreviousMonth, lastDayPreviousMonth, severity);
+                if (dateRange === 'lastmonth') {
+                    const currentDate = this.getCurrentDate();
+                    const previousDate = this.getPreviousPeriod(currentDate, this.thirtyDaysVariation);
+                    const startData = await this.filterPatient(previousDate, currentDate, severity);
+                    const lastDayPreviousMonth = this.getPreviousPeriod(previousDate, 1);
+                    const firstDayPreviousMonth = this.getPreviousPeriod(lastDayPreviousMonth, this.thirtyDaysVariation);
+                    const endData = await this.filterPatient(firstDayPreviousMonth, lastDayPreviousMonth, severity);
 
-                return await this.setCardRanking({
-                    startDate: previousDate,
-                    endDate: currentDate,
-                    startData: startData,
-                    endData: endData,
-                    severity: queryParams.covid19Severity,
-                    dateRange: queryParams.dateRange,
-                })
+                    return await this.setCardRankingResponse({
+                        startDate: previousDate,
+                        endDate: currentDate,
+                        startData: startData,
+                        endData: endData,
+                        severity: queryParams.covid19Severity,
+                        dateRange: queryParams.dateRange,
+                    });
+                }
             } else {
-                console.log(4, queryParams);
+                let filter = {}
+                if (queryParams.covid19Severity !== 'all'){
+                    const severity = this.covid19Severities[queryParams.covid19Severity].shortLabel;
+                    filter = {covid19_severity: severity}
+                }
+                const summaryData = await this.query(filter, { created_at: -1 });
+                const response = await this.setSummaryResponse(summaryData);
+                return response
             }
         } else {
             console.log(5, queryParams);
