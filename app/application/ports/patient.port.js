@@ -141,8 +141,51 @@ class PatientOutputPort {
         return { previousDate, currentDate };
     }
 
-    async setInitialData(data) {
-        const weeKlyFormat = 'DD MMM';
+    async setTotalLineData(data) {
+        let defaultDateFormat = 'DD MMM YYYY';
+        let dates = this.getDatesByFormat(data, defaultDateFormat);
+
+        if (dates.length > 20) {
+            defaultDateFormat = 'MMMM YYYY';
+            dates = this.getDatesByFormat(data, defaultDateFormat);
+        }
+
+        const countPatients = this.listPatientSeverityByDate(data, dates, defaultDateFormat);
+        const totalPatients = countPatients.moderate.total + countPatients.serius.total + countPatients.critical.total;
+        return { dates, countPatients, totalPatients };
+    }
+
+    async setTotalLineResponse(data) {
+        const { dates, countPatients, totalPatients } = await this.setTotalLineData(data.ranking);
+        return {
+            ranking: {
+                labels: dates,
+                data: {
+                    moderate_patients: {
+                        label: this.covid19Severities.moderate.largeLabel,
+                        data: countPatients.moderate.data,
+                    },
+                    serius_patients: {
+                        label: this.covid19Severities.serius.largeLabel,
+                        data: countPatients.serius.data,
+                    },
+                    critical_patients: {
+                        label: this.covid19Severities.critical.largeLabel,
+                        data: countPatients.critical.data,
+                    },
+                },
+                total: totalPatients,
+                total_percentage: this.getPercentageDifference(totalPatients, data.totalPatientsOfPreviousYear),
+            },
+        };
+    }
+
+    async setSummaryResponse(data) {
+        return { summary: { patients: data } };
+    }
+
+    async setInitialDataResponse(data) {
+        const weeKlyFormat = 'DD MMM YYYY';
         const weeklyDates = this.getDatesByFormat(data.weeklyData, weeKlyFormat);
         const countWeeklyPatients = this.listPatientSeverityByDate(data.weeklyData, weeklyDates, weeKlyFormat);
 
@@ -151,11 +194,7 @@ class PatientOutputPort {
         const countFifteenPatients = this.listPatientSeverityByDate(data.fifteenData, fifteenDates, weeKlyFormat);
 
         // Data from all year
-        const annualFormat = 'MMMM';
-        const annualDates = this.getDatesByFormat(data.annualData, annualFormat);
-        const countAnnualPatients = this.listPatientSeverityByDate(data.annualData, annualDates, annualFormat);
-        const totalAnnualPtients = countAnnualPatients.moderate.total + countAnnualPatients.serius.total + countAnnualPatients.critical.total;
-
+        const { dates, countPatients, totalPatients } = await this.setTotalLineData(data.annualData);
         return {
             weekly_ranking: {
                 start_date: this.setLocalTimeZone(data.starDate, 'MM/DD/YYYY'),
@@ -186,23 +225,23 @@ class PatientOutputPort {
                 },
             },
             annual_ranking: {
-                labels: annualDates,
+                labels: dates,
                 data: {
                     moderate_patients: {
                         label: this.covid19Severities.moderate.largeLabel,
-                        data: countAnnualPatients.moderate.data,
+                        data: countPatients.moderate.data,
                     },
                     serius_patients: {
                         label: this.covid19Severities.serius.largeLabel,
-                        data: countAnnualPatients.serius.data,
+                        data: countPatients.serius.data,
                     },
                     critical_patients: {
                         label: this.covid19Severities.critical.largeLabel,
-                        data: countAnnualPatients.critical.data,
+                        data: countPatients.critical.data,
                     },
                 },
-                total: totalAnnualPtients,
-                total_percentage: this.getPercentageDifference(totalAnnualPtients, data.totalPatientsOfPreviousYear),
+                total: totalPatients,
+                total_percentage: this.getPercentageDifference(totalPatients, data.totalPatientsOfPreviousYear),
             },
             total_ranking: {
                 data: {
@@ -225,7 +264,7 @@ class PatientOutputPort {
         };
     }
 
-    async setCardRanking(data) {
+    async setCardRankingResponse(data) {
         return {
             start_date: this.setLocalTimeZone(data.startDate, 'MM/DD/YYYY'),
             end_date: this.setLocalTimeZone(data.endDate, 'MM/DD/YYYY'),
