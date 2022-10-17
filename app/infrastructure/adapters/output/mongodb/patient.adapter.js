@@ -28,7 +28,6 @@ class PatientMongoDBAdapter extends PatientOutputPort {
 
     async filterPatient(startDate, endDate, covid19Severity) {
         const filter = this.setGeneralFilter(startDate, endDate, covid19Severity);
-
         return await this.query(filter, { created_at: 1 }, 'created_at covid19_severity');
     }
 
@@ -145,15 +144,22 @@ class PatientMongoDBAdapter extends PatientOutputPort {
             const response = await this.setSummaryResponse(summaryData);
             return response;
         }
-
-        if (Object.keys(queryParams).includes('endDate')){
-            const startDate = new Date(queryParams.startDate);
+        const startDate = new Date(queryParams.startDate);
+        if (Object.keys(queryParams).includes('endDate')) {
             const endDate = new Date(queryParams.endDate);
-            console.log(startDate, endDate);
-        }else{
-            console.log(queryParams)
+            const ranking = await this.filterPatient(startDate, endDate);
+            const totalPatientsOfPreviousYear = await this.count(this.setGeneralFilter(this.getFirstDateOfPreviousYear(), this.getLastDateOfPreviousYear()));
+            return await this.setTotalLineResponse({
+                ranking,
+                totalPatientsOfPreviousYear,
+            });
+        } else {
+            const { annualData, totalPatientsOfPreviousYear } = await this.getAnnualData(startDate);
+            return await this.setTotalLineResponse({
+                ranking: annualData,
+                totalPatientsOfPreviousYear: totalPatientsOfPreviousYear,
+            });
         }
-
     }
 
     async query(filter, sorter, selecter) {
