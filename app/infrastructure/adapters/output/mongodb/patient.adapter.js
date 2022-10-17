@@ -135,19 +135,25 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                         dateRange: queryParams.dateRange,
                     });
                 }
-            } else {
-                let filter = {}
-                if (queryParams.covid19Severity !== 'all'){
-                    const severity = this.covid19Severities[queryParams.covid19Severity].shortLabel;
-                    filter = {covid19_severity: severity}
-                }
-                const summaryData = await this.query(filter, { created_at: -1 });
-                const response = await this.setSummaryResponse(summaryData);
-                return response
             }
-        } else {
-            console.log(5, queryParams);
+            let filter = {};
+            if (queryParams.covid19Severity !== 'all') {
+                const severity = this.covid19Severities[queryParams.covid19Severity].shortLabel;
+                filter = { covid19_severity: severity };
+            }
+            const summaryData = await this.query(filter, { created_at: -1 });
+            const response = await this.setSummaryResponse(summaryData);
+            return response;
         }
+
+        if (Object.keys(queryParams).includes('endDate')){
+            const startDate = new Date(queryParams.startDate);
+            const endDate = new Date(queryParams.endDate);
+            console.log(startDate, endDate);
+        }else{
+            console.log(queryParams)
+        }
+
     }
 
     async query(filter, sorter, selecter) {
