@@ -17,7 +17,10 @@ class PatientOutputPort {
                 shortLabel: 'Moderado',
                 largeLabel: 'Pacientes Moderados',
             },
-            serius: { shortLabel: 'Grave', largeLabel: 'Pacientes Graves' },
+            serius: {
+                shortLabel: 'Grave',
+                largeLabel: 'Pacientes Graves',
+            },
             critical: {
                 shortLabel: 'Crítico',
                 largeLabel: 'Pacientes Críticos',
@@ -62,7 +65,6 @@ class PatientOutputPort {
 
     getCurrentDate() {
         const currentDate = new Date(this.setLocalTimeZone(new Date(), 'MM/DD/YYYY'));
-        console.log(currentDate)
         return currentDate;
     }
 

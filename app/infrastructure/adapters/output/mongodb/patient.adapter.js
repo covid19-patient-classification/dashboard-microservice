@@ -16,13 +16,12 @@ class PatientMongoDBAdapter extends PatientOutputPort {
     setGeneralFilter(startDate, endDate, covid19Severity) {
         const filter = {
             created_at: {
-                $gte: startDate,
-                $lt: endDate,
+                $gte: new Date(startDate.setUTCHours(0, 0, 0, 0)),
+                $lt: new Date(endDate.setUTCHours(23, 59, 59, 999)),
             },
         };
 
         if (covid19Severity) filter.covid19_severity = covid19Severity;
-
         return filter;
     }
 
