@@ -1,14 +1,17 @@
 const config = require('./infrastructure/resources/config');
-const express = require('express');
+const socket = require('./infrastructure/adapters/output/sockets/server.adapter');
 const routerApi = require('./infrastructure/adapters/input/api/v1/routes');
+const express = require('express');
+const cors = require('cors');
 
 const app = express();
+const server = require('http').Server(app);
 
-// Json Middelware
-app.use(express.json());
-
+app.use(cors());
+app.use(express.json()); // Json Middelware
+socket.connect(server);
 routerApi(app);
 
-app.listen(config.port, () => {
+server.listen(config.port, () => {
     console.log('Dasboard microservice listening on port ' + config.port);
 });
