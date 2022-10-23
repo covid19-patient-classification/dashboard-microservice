@@ -282,6 +282,46 @@ class PatientOutputPort {
             },
         };
     }
+
+    getTypeOfPatient(covid19_severity) {
+        return Object.keys(this.covid19Severities).filter((severity) => {
+            return this.covid19Severities[severity].shortLabel === covid19_severity;
+        })[0];
+    }
+
+    async setRealTimeData(data) {
+        let weeKlyDateFormat = 'DD MMM YYYY';
+        return {
+            typeOfPatient: this.getTypeOfPatient(data.severity),
+            shortDate: this.dateToString(data.patient.created_at, 'MMMM YYYY'),
+            largeDate: this.dateToString(data.patient.created_at, 'DD MMM YYYY'),
+            weekly_ranking: {
+                data: {
+                    patients: {
+                        total: data.weeklyData.startData.length,
+                        percentage: this.getPercentageDifference(data.weeklyData.startData.length, data.weeklyData.endData.length),
+                    },
+                },
+            },
+            monthly_ranking: {
+                data: {
+                    patients: {
+                        total: data.monthlyData.startData.length,
+                        percentage: this.getPercentageDifference(data.monthlyData.startData.length, data.monthlyData.endData.length),
+                    },
+                },
+            },
+            total_ranking: {
+                data: {
+                    patients: {
+                        data: data.totalRanking.totalSeverityPatients,
+                    },
+                },
+                total: data.totalRanking.total,
+            },
+            summary: { patients: data.patient },
+        };
+    }
 }
 
 module.exports = PatientOutputPort;
