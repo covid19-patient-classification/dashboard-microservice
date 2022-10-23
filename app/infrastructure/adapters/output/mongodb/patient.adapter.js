@@ -3,8 +3,6 @@ const config = require('../../../resources/config');
 const PatientOutputPort = require('../../../../application/ports/patient.port');
 const patientModel = require('./models/patient.model');
 
-database.Promise = global.Promise;
-
 class PatientMongoDBAdapter extends PatientOutputPort {
     constructor() {
         super();
