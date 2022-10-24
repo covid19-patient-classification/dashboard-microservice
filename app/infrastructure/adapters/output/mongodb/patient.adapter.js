@@ -221,6 +221,7 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                     },
                     patient: patient,
                 });
+
                 socket.io.emit('patient', response);
             }
         });
