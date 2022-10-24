@@ -194,7 +194,7 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                 const severity = patient.covid19_severity;
 
                 // Weekly Data
-                const { lastSevenDaysData, previousWeekData } = await this.getLastSevenDaysDataBySeverity(severity);
+                const { currentDate, lastSevenDaysData, previousWeekData } = await this.getLastSevenDaysDataBySeverity(severity);
                 const weeklyData = {
                     startData: lastSevenDaysData,
                     endData: previousWeekData,
@@ -207,19 +207,27 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                     endData: endData,
                 };
 
+                // Annual Ranking
+                const { annualData, totalPatientsOfPreviousYear } = await this.getAnnualData(currentDate);
+                const annuaRanking = {
+                    annualData: annualData,
+                    totalPatientsOfPreviousYear: totalPatientsOfPreviousYear,
+                };
                 // Total Ranking
                 const totalSeverityPatients = await this.count({ covid19_severity: severity });
                 const total = await this.count({});
+                const totalRanking = {
+                    totalSeverityPatients: totalSeverityPatients,
+                    total: total,
+                };
 
                 const response = await this.setRealTimeData({
-                    severity: severity,
-                    weeklyData: weeklyData,
-                    monthlyData: monthlyData,
-                    totalRanking: {
-                        totalSeverityPatients: totalSeverityPatients,
-                        total: total,
-                    },
-                    patient: patient,
+                    severity,
+                    weeklyData,
+                    monthlyData,
+                    annuaRanking,
+                    totalRanking,
+                    patient,
                 });
 
                 socket.io.emit('patient', response);
