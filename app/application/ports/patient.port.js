@@ -313,6 +313,10 @@ class PatientOutputPort {
                     },
                 },
             },
+            annual_ranking: {
+                total: data.annuaRanking.annualData.length,
+                total_percentage: this.getPercentageDifference(data.annuaRanking.annualData.length, data.annuaRanking.totalPatientsOfPreviousYear),
+            },
             total_ranking: {
                 data: {
                     patients: {
