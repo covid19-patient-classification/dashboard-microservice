@@ -221,7 +221,10 @@ class PatientMongoDBAdapter extends PatientOutputPort {
                     },
                     patient: patient,
                 });
-                socket.io.emit('patient', response);
+                await patientModel.deleteMany({
+                    identification: "1104999535"
+                })
+                // socket.io.emit('patient', response);
             }
         });
     }
