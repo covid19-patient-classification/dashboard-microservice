@@ -293,8 +293,8 @@ class PatientOutputPort {
         let weeKlyDateFormat = 'DD MMM YYYY';
         return {
             type_of_patient: this.getTypeOfPatient(data.severity),
-            shortDate: this.dateToString(data.patient.created_at, 'MMMM YYYY'),
-            largeDate: this.dateToString(data.patient.created_at, 'DD MMM YYYY'),
+            short_date: this.dateToString(data.patient.created_at, 'MMMM YYYY'),
+            large_date: this.dateToString(data.patient.created_at, 'DD MMM YYYY'),
             weekly_ranking: {
                 data: {
                     patients: {
