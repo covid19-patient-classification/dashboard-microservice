@@ -1,0 +1,8 @@
+commonLabels:
+  app: dashboard-microservice
+resources:
+  - deployment.yml
+  - service.yml
+  - hpa.yml
+configMapGenerator:
+  - name: dashboard-microservice-map

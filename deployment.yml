@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-microservice
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: dashboard-microservice
+    spec:
+      containers:
+        - name: dashboard-microservice-container
+          image: us-central1-docker.pkg.dev/covid19-patients-tt/dashboard-microservice-repository/dashboard-microservice-image:latest
+          imagePullPolicy: Always
+          env:
+            - name: DATABASE_DEPLOYMENT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-microservice-secrets
+                  key: DATABASE_DEPLOYMENT_URL
+                  optional: false
+
+            - name: LOCALE
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-microservice-secrets
+                  key: LOCALE
+                  optional: false
+
+            - name: NODE_ENV
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-microservice-secrets
+                  key: NODE_ENV
+                  optional: false
+
+            - name: PATIENT_COLLECTION
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-microservice-secrets
+                  key: PATIENT_COLLECTION
+                  optional: false
+
+            - name: PORT
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-microservice-secrets
+                  key: PORT
+                  optional: false
+
+            - name: TZ
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-microservice-secrets
+                  key: TZ
+                  optional: false
+
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
